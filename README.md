@@ -17,4 +17,4 @@ Install pytest with `pip install pytest`, then run the test suites:
     pytest tests
 
 ## Demos
-Demo codes are given as Jupyter Notebook in [notebooks/](notebooks/).
+Demo codes are given in [notebooks/](notebooks/), which can be run using Jupyter Notebook.

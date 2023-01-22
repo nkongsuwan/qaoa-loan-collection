@@ -1,3 +1,10 @@
+local-workspace/
+.vscode/
+.DS_Store
+
+#===========================================================================
+# Default .gitignore
+#===========================================================================
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
