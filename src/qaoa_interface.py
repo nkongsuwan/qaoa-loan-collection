@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
+#from src.loanee_graph import LoaneeGraph
 
 class QaoaInterface(ABC):
-    @abstractmethod
     def __init__(self):
-        self.xxx = 1
+        pass
 
-    @abstractmethod
-    def test(self):
+    #@abstractmethod
+    def tmp(self):
         pass

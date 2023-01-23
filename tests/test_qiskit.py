@@ -1,4 +1,2 @@
-import pytest
-
-def test():
+def test_tmp():
     pass
