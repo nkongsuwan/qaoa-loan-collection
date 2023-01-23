@@ -1,14 +1,13 @@
 import numpy as np
 
 class LoaneeGraph:
-    def __init__(self, config):
-        self.num_actions = config["number_of_actions"]
-        self.num_loanees = config["number_of_loanees"]
-        self.num_qubits  = np.power(2, self.num_actions * self.num_loanees)
+    def __init__(self, expected_net_profit_matrix, association_matrix):
 
+        assert(isinstance(expected_net_profit_matrix, np.ndarray))
+        assert(isinstance(association_matrix, np.ndarray))
 
-    # "number_of_loanees": Qs.shape[0],
-    # "number_of_actions": Qs.shape[1]
-
-    def get_num_qubits(self):
-        return self.num_qubits
+        #self.expected_net_profit_matrix = expected_net_profit_matrix
+        #self.association_matrix = association_matrix
+        self.num_loanees = expected_net_profit_matrix.shape[0]
+        self.num_actions = expected_net_profit_matrix.shape[1]
+        #self.num_qubits  = np.power(2, self.num_loanees*self.num_actions)

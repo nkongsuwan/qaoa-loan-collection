@@ -1,6 +1,7 @@
+import numpy as np
 from src.loanee_graph import LoaneeGraph
 
-def test_loanee_graph():
+def test_simple_instance():
 
     expected_net_profit_matrix = np.array(
         [
