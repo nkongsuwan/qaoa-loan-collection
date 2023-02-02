@@ -49,3 +49,4 @@ def test_invalid_instances():
         
         with pytest.raises(Exception):
             LoaneeGraph(e, np.array([[1,1],[1,1]]))
+
