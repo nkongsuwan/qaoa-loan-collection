@@ -105,8 +105,6 @@ class QiskitQAOA(QaoaInterface):
         self.result = result
 
         # Create template result
-        # Benz, Win, Amp, et al. accidentally made this part of the code
-        # so that it is the same as Tew's code (???)
         list_of_valid_action = []
         for i in range(self.len_M):
             string = ['0']*self.len_M
@@ -127,7 +125,6 @@ class QiskitQAOA(QaoaInterface):
 
         # Get valid index
         # Normalized Probability 
-        #norm = sum(self.candidate.values()) # <--- ต้องกำลังสองก่อนรึเปล่า
         for candidate_key, candidate_value in self.candidate.items():
             valid = if_valid_state(candidate_key, length_action=self.len_M)
             if valid:
@@ -293,8 +290,6 @@ class QiskitVQE(QaoaInterface):
         self.result = result
 
         # Create template result
-        # Benz, Win, Amp, et al. accidentally made this part of the code
-        # so that it is the same as Tew's code (???)
         list_of_valid_action = []
         for i in range(self.len_M):
             string = ['0']*self.len_M
@@ -315,7 +310,6 @@ class QiskitVQE(QaoaInterface):
 
         # Get valid index
         # Normalized Probability 
-        #norm = sum(self.candidate.values()) # <--- ต้องกำลังสองก่อนรึเปล่า
         for candidate_key, candidate_value in self.candidate.items():
             valid = if_valid_state(candidate_key, length_action=self.len_M)
             if valid:
@@ -380,8 +374,6 @@ class QiskitVQE(QaoaInterface):
     def get_results(self, provider):
 
         # Create template result
-        # Benz, Win, Amp, et al. accidentally made this part of the code
-        # so that it is the same as Tew's code (???)
         list_of_valid_action = []
         for i in range(self.len_M):
             string = ['0']*self.len_M
