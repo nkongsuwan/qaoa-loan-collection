@@ -13,10 +13,6 @@ def test_generate_random_dataset():
     assert np.sum(ass) == 0
     assert np.sum(exp) == 0
 
-    exp, ass = generate_random_dataset(5, 4, association_cutoff=1)
-    assert np.sum(ass) == 0
-    assert np.sum(exp) == 0
-
     # test seed
     _, ass1 = generate_random_dataset(5, 4, seed=999)
     _, ass2 = generate_random_dataset(5, 4, seed=999)

@@ -11,7 +11,8 @@ class QaoaAnalytics():
     def __init__(self, loanees: LoaneeGraph, qaoa_config: dict):
 
         assert isinstance(loanees, LoaneeGraph)
-        self.__loanees = loanees
+        self.__num_loanees = loanees.get_num_loanees()
+        self.__num_actions = loanees.get_num_actions()       
 
         # set default values for instance variables
         self.__epsilon = 0.1
@@ -19,13 +20,18 @@ class QaoaAnalytics():
         self.__rng     = np.random.default_rng(12345)
         self.__optimizer_method  = "COBYLA"
         self.__optimizer_maxiter = 50
-        
         self.__initialize_instance_variables_with_config(qaoa_config)
 
-        # Coefficients for calculating the cost function
-        #self.h       = (1 - self.epsilon)*np.copy(self.loanees.get_expected_net_profit_matrix())
-        #self.h[:,0] += - self.epsilon*np.sum(self.loanees.get_association_matrix(), axis=1)
-        #self.J       = self.epsilon*np.copy(self.loanees.get_association_matrix())
+        # Initialize coefficients for problem and mixing hamiltonian
+        self.__h       = (1 - self.__epsilon) * np.copy(loanees.get_expected_net_profit_matrix())
+        self.__h[:,0] +=    - self.__epsilon  * np.sum (loanees.get_association_matrix(), axis=1)
+        self.__J       =      self.__epsilon  * np.copy(loanees.get_association_matrix()) 
+
+        # Initialize helper vectors for caluclating problem hamiltonian
+        self.__vs = None
+        self.__es = None
+        self.__initialize_helper_vectors_for_problem_hamiltonian()
+
 
     def __initialize_instance_variables_with_config(self, qaoa_config: dict):
         if "epsilon_constant" in qaoa_config:
@@ -51,12 +57,38 @@ class QaoaAnalytics():
             assert isinstance(qaoa_config["optimizer_maxiter"], str)
             self.__optimizer_maxiter = qaoa_config["optimizer_maxiter"]
 
+
+    # Initialize a tight-binding operator acting on each loanee
+    def __initialize_helper_vectors_for_problem_hamiltonian(self):
+        
+        # Eigenstates  |E_k> = a^\dagger_k |0>
+        self.__vs = np.exp(
+            -1j * np.array(
+                [
+                    [
+                        2 * np.pi * k * j / self.__num_actions for k in range(self.__num_actions)
+                    ] for j in range(self.__num_actions)
+                ]
+            )
+        )
+        self.__vs = self.__vs / np.sqrt(self.__num_actions)
+        
+        # Eigenvalues e^{-iE_k} where E_k = 2*cos(k)
+        self.__es = np.exp(
+            -1j * 2 * np.cos(
+                np.arange(self.__num_actions) * 2 * np.pi / self.__num_actions
+            )
+        )
+
     '''
     def optimize_qaoa_params(self, initial_qaoa_params: np.ndarray = None):
     
         if initial_qaoa_params is None:
             initial_qaoa_params = self.rng.random(2*self.p)    
         
+        # To-do
+        #result_qaoa = ResultQaoa()
+
         scipy_result = scipy.minimize(
             self._calculate_cost, 
             initial_qaoa_params, 
@@ -67,56 +99,144 @@ class QaoaAnalytics():
             }
         )
 
-        result_qaoa = ResultQaoa()
-        return result_qaoa
+        #return result_qaoa
     '''
 
+    '''
     def _calculate_cost(self, qaoa_params: np.ndarray):
         assert len(qaoa_params) == 2*self.__p
 
         cost = 0.0
-        wavefunction = self.__evolve_wavefunction(qaoa_params)
 
-        return cost
-    '''  
-        psi_bra = np.copy(np.conj(self.psi))
-        c = self.c0
+        wavefunc = self.__evolve_wavefunc(qaoa_params)
+        psi_bra = np.copy(np.conj(wavefunc))
 
-        for i in range(self.N): 
-            psi_ket = np.copy(self.psi)
-            c += self.inner_product(psi_bra, self._apply_h_B_onsite(psi_ket,i))                      
-            for ii in range(i):
-                if self.J[i,ii] != 0:
-                    psi_ket = np.copy(self.psi)
-                    c += self.inner_product(psi_bra, self._apply_h_B_coupling(psi_ket,i,ii))
+        for i in range(self.__num_loanees): 
+            psi_ket = np.copy(wavefunc)
+            cost += self.__inner_product(psi_bra, self.__apply_h_B_onsite(psi_ket, i))                      
+            for j in range(i):
+                if self.J[i,j] != 0:
+                    psi_ket = np.copy(wavefunc)
+                    cost += self.inner_product(psi_bra, self.__apply_h_B_coupling(psi_ket, i, j))
         
-        self.costs += [np.real(c)]
-        return np.real(c)
+        # To-do
+        #self.costs += [np.real(c)]
+
+        return np.real(cost)
     '''
 
-    # Evolve a wavefunction using a QAOA circuit with the given QAOA variational parameters (betas, gammas)
-    # Here, a reduced Hibert space is used to describe the wavefunction,
-    # i.e. dimension of the wavefunction is num_actions**num_loanees
-    # instead of 2**(num_actions*num_loanees).
-    def __evolve_wavefunction(self, qaoa_params: np.ndarray):
-        wavefunction = self.__prepare_equal_superposition_of_valid_states()
-        
-        for i in range(self.__p):
-            wavefunction = self.__apply_U_A(wavefunction, qaoa_params[2*i])
-            wavefunction = self.__apply_U_B(wavefunction, qaoa_params[2*i + 1])
+    '''
+    def __inner_product(self, psi_1, psi_2):
+        result = np.tensordot(
+            psi_1,
+            psi_2,
+            axes=(
+                np.arange(self.__num_loanees),
+                np.arange(self.__num_loanees)
+            )
+        )
+        return result
+    '''
 
-        return wavefunction
+    # Evolve a wavefunc using a QAOA circuit with the given QAOA variational parameters (betas, gammas)
+    # Here, a reduced Hibert space is used to describe the wavefunc,
+    # i.e. dimension of the wavefunc is num_actions**num_loanees
+    # instead of 2**(num_actions*num_loanees).
+    def __evolve_wavefunc(self, qaoa_params: np.ndarray):
+        assert qaoa_params.shape == (2*self.__p,)
+
+        wavefunc = self.__prepare_equal_superposition_of_valid_states()
+        for i in range(self.__p):
+            wavefunc = self.__apply_U_problem(wavefunc, qaoa_params[2*i])
+            wavefunc = self.__apply_U_mixing (wavefunc, qaoa_params[2*i + 1])
+
+        return wavefunc
+
 
     # A valid state is a state where only one action is taken for each loanee.
-    # Returned wavefunction has a dimension of [[num_actions]*num_loanees
-    # e.g. for 5 loanees and 3 actions
-    # wavefunction,shape == (3, 3, 3, 3, 3)
+    # Returned wavefunc has a dimension of [[num_actions]*num_loanees
+    # e.g. for 3 loanees and 2 actions
+    # wavefunc.shape == (2, 2, 2)
+    # wavefunc = ( |10,10,10> + |10,10,01> + |10,01,10> + |10,01,01> + |01,10,10> + |01,10,01> + |01,01,10> + |01,01,01> ) / norm
     def __prepare_equal_superposition_of_valid_states(self):
-        num_actions = self.__loanees.get_num_actions()
-        num_loanees = self.__loanees.get_num_loanees()
-        
-        num_valid_states = num_actions**num_loanees
-        wavefunction = np.ones(num_valid_states, dtype='complex') / np.sqrt(num_valid_states)
-        wavefunction = np.reshape(wavefunction,[num_actions]*num_loanees)
+        num_valid_states = self.__num_actions**self.__num_loanees
+        wavefunc = np.ones(num_valid_states, dtype='complex') / np.sqrt(num_valid_states)
+        wavefunc = np.reshape(wavefunc,[self.__num_actions]*self.__num_loanees)
+        return wavefunc
 
-        return wavefunction
+
+    # U_problem  = exp(- i H_problem gamma)
+    def __apply_U_problem(self, wavefunc, param_beta):
+        assert isinstance(param_beta, float)
+        assert np.shape(wavefunc) == tuple([self.__num_actions]*self.__num_loanees)
+
+        arg = np.power(self.__es, param_beta)
+        u_problem = np.conj(self.__vs.T).dot( arg[:,None] * self.__vs )
+        
+        for i in range(self.__num_loanees):
+            wavefunc = np.tensordot(u_problem, wavefunc, axes=(1,i))
+        
+        return wavefunc
+
+
+    # U_mixing  = exp(- i H_mixing beta)
+    def __apply_U_mixing(self, wavefunc, param_gamma):
+        assert isinstance(param_gamma, float)
+        assert np.shape(wavefunc) == tuple([self.__num_actions]*self.__num_loanees)
+
+        for i in range(self.__num_loanees):
+            self.__apply_U_B_onsite(wavefunc, param_gamma, i)
+            for j in range(i):
+                if self.__J[i,j] != 0:
+                    self.__apply_U_B_coupling(wavefunc, param_gamma, i, j)  
+
+        return wavefunc
+
+
+    # Apply an onsite term in U_B 
+    def __apply_U_B_onsite(self, wavefunc, param_gamma, i):
+        assert i < self.__num_loanees
+
+        u = np.exp(
+            -1j * (-self.__h[i,:]) * param_gamma
+        )
+        idx = '[' + 'None,'*i + ':' + ',None'*(self.__num_loanees-i-1) + ']'
+        exec('u = u' + idx)
+        
+        wavefunc *= u
+        return wavefunc
+    
+
+    # Apply a coupling term in U_B 
+    def __apply_U_B_coupling(self, wavefunc, param_gamma, i, j):
+        assert i>j
+        
+        idx = '['+':,'*j + '0,' + ':,'*(i-j-1) + '0' +',:'*(self.__num_loanees-i-1) + ']'
+        exec('wavefunc = wavefunc' + idx)
+        
+        wavefunc *= np.exp(-1j*(-self.__J[i,j])*param_gamma)
+        return wavefunc
+
+        
+    # Apply an onsite term in H_B 
+    def __apply_h_B_onsite(self, wavefunc, i):
+        assert i < self.__num_loanees
+
+        u = -self.h[i,:]
+        idx = '[' +'None,'*i + ':' + ',None'*(self.__num_loanees-i-1) + ']'
+        exec('u = u' + idx)
+        
+        wavefunc *= u
+        return wavefunc
+
+    
+    # Apply the coupling term in H_B
+    def __apply_h_B_coupling(self, wavefunc, i, j):
+        assert i>j
+
+        # -J * n_i * n_j
+        h_B_coupling = np.zeros((self.__num_actions**2, self.__num_actions**2))
+        h_B_coupling[0,0] = -self.__J[i,j]
+        h_B_coupling = np.reshape(h_B_coupling, [self.__num_actions]*4)
+    
+        return np.tensordot(wavefunc, h_B_coupling, axes=([j,i],[0,1]))
