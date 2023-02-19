@@ -1,5 +1,7 @@
 import numpy as np
 import scipy
+from functools import partial
+
 from src.loanee_graph import LoaneeGraph
 from src.result import ResultQaoa
 
@@ -80,17 +82,17 @@ class QaoaAnalytics():
             )
         )
 
-    '''
+
     def optimize_qaoa_params(self, initial_qaoa_params: np.ndarray = None):
     
         if initial_qaoa_params is None:
             initial_qaoa_params = self.rng.random(2*self.p)    
         
         # To-do
-        #result_qaoa = ResultQaoa()
+        result_qaoa = ResultQaoa()
 
         scipy_result = scipy.minimize(
-            self._calculate_cost, 
+            partial(self._calculate_cost, result=result_qaoa), 
             initial_qaoa_params, 
             method = self.__optimizer_method, 
             options = {
@@ -99,44 +101,44 @@ class QaoaAnalytics():
             }
         )
 
-        #return result_qaoa
-    '''
+        return result_qaoa
 
-    '''
-    def _calculate_cost(self, qaoa_params: np.ndarray):
+
+    def _calculate_cost(self, qaoa_params: np.ndarray, result: ResultQaoa):
         assert len(qaoa_params) == 2*self.__p
 
         cost = 0.0
 
         wavefunc = self.__evolve_wavefunc(qaoa_params)
-        psi_bra = np.copy(np.conj(wavefunc))
+        wavefunc_bra = np.copy(np.conj(wavefunc))
 
         for i in range(self.__num_loanees): 
-            psi_ket = np.copy(wavefunc)
-            cost += self.__inner_product(psi_bra, self.__apply_h_B_onsite(psi_ket, i))                      
+            wavefunc_ket = np.copy(wavefunc)
+            cost += self.__inner_product(wavefunc_bra, self.__apply_h_B_onsite(wavefunc_ket, i))                      
             for j in range(i):
                 if self.J[i,j] != 0:
-                    psi_ket = np.copy(wavefunc)
-                    cost += self.inner_product(psi_bra, self.__apply_h_B_coupling(psi_ket, i, j))
+                    wavefunc_ket = np.copy(wavefunc)
+                    cost += self.inner_product(wavefunc_bra, self.__apply_h_B_coupling(wavefunc_ket, i, j))
         
-        # To-do
-        #self.costs += [np.real(c)]
+        cost = np.real(cost)
+        
+        result.append_cost(cost)
+        result.append_params(qaoa_params)
 
-        return np.real(cost)
-    '''
+        return cost
 
-    '''
-    def __inner_product(self, psi_1, psi_2):
+
+    def __inner_product(self, wavefunc_1, wavefunc_2):
         result = np.tensordot(
-            psi_1,
-            psi_2,
+            wavefunc_1,
+            wavefunc_2,
             axes=(
                 np.arange(self.__num_loanees),
                 np.arange(self.__num_loanees)
             )
         )
         return result
-    '''
+
 
     # Evolve a wavefunc using a QAOA circuit with the given QAOA variational parameters (betas, gammas)
     # Here, a reduced Hibert space is used to describe the wavefunc,
@@ -200,6 +202,9 @@ class QaoaAnalytics():
         u = np.exp(
             -1j * (-self.__h[i,:]) * param_gamma
         )
+
+        # Reshaping u
+        # u = u[None, None, ..., :, None, ..., None]
         idx = '[' + 'None,'*i + ':' + ',None'*(self.__num_loanees-i-1) + ']'
         exec('u = u' + idx)
         
@@ -211,10 +216,13 @@ class QaoaAnalytics():
     def __apply_U_B_coupling(self, wavefunc, param_gamma, i, j):
         assert i>j
         
+        # wavefunc = wavefunc[:, :, ..., 0, :, ..., 0, :, ..., :]
         idx = '['+':,'*j + '0,' + ':,'*(i-j-1) + '0' +',:'*(self.__num_loanees-i-1) + ']'
         exec('wavefunc = wavefunc' + idx)
         
-        wavefunc *= np.exp(-1j*(-self.__J[i,j])*param_gamma)
+        wavefunc *= np.exp(
+            -1j * (-self.__J[i,j]) * param_gamma
+        )
         return wavefunc
 
         
@@ -223,6 +231,9 @@ class QaoaAnalytics():
         assert i < self.__num_loanees
 
         u = -self.h[i,:]
+
+        # Reshaping u
+        # u = u[None, None, ..., :, None, ..., None]
         idx = '[' +'None,'*i + ':' + ',None'*(self.__num_loanees-i-1) + ']'
         exec('u = u' + idx)
         
