@@ -106,27 +106,34 @@ class QaoaAnalytics():
 
     def _calculate_cost(self, qaoa_params: np.ndarray, result: ResultQaoa):
         assert len(qaoa_params) == 2*self.__p
+        wavefunc = self.__evolve_wavefunc(qaoa_params)
+        cost = self.__calculate_cost_of_wavefunc(wavefunc)        
+        result.append(cost, qaoa_params)
+        return cost
+
+
+    def __calculate_cost_of_wavefunc(self, wavefunc):   
 
         cost = 0.0
-
-        wavefunc = self.__evolve_wavefunc(qaoa_params)
         wavefunc_bra = np.copy(np.conj(wavefunc))
 
         for i in range(self.__num_loanees): 
             wavefunc_ket = np.copy(wavefunc)
-            cost += self.__inner_product(wavefunc_bra, self.__apply_h_B_onsite(wavefunc_ket, i))                      
+            cost += self.__inner_product(
+                wavefunc_bra,
+                self.__apply_h_B_onsite(wavefunc_ket, i)
+            )                      
+            
             for j in range(i):
-                if self.J[i,j] != 0:
+                if self.__J[i,j] != 0:
                     wavefunc_ket = np.copy(wavefunc)
-                    cost += self.inner_product(wavefunc_bra, self.__apply_h_B_coupling(wavefunc_ket, i, j))
+                    cost += self.inner_product(
+                        wavefunc_bra,
+                        self.__apply_h_B_coupling(wavefunc_ket, i, j)
+                    )
         
         cost = np.real(cost)
-        
-        result.append_cost(cost)
-        result.append_params(qaoa_params)
-
         return cost
-
 
     def __inner_product(self, wavefunc_1, wavefunc_2):
         result = np.tensordot(
