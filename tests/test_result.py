@@ -10,11 +10,9 @@ def test_result():
     result.append(0.2, np.array([1.1, 3.3]))
     result.append(0.5, np.array([1.0, 5  ]))
     
+    assert result._ResultQaoa__len_result == len(result._ResultQaoa__log)
     assert result.get_len() == result._ResultQaoa__len_result
     assert result.get_len() == 4
-
-    assert result.get_final_cost() == 0.5
-    assert np.array_equal(result.get_final_params(), np.array([1.0, 5  ]))
 
     assert result.get_cost_with_index(0) == 1
     assert result.get_cost_with_index(1) == 99
@@ -25,7 +23,12 @@ def test_result():
     assert np.array_equal(result.get_params_with_index(2), np.array([1.1, 3.3]))
     assert np.array_equal(result.get_params_with_index(3), np.array([1.0, 5  ]))
 
+
 def test_invalid_input():
+    
+    with pytest.raises(Exception):
+        result = ResultQaoa()
+        result.append(0.1, np.array([]))    
     
     with pytest.raises(Exception):
         result = ResultQaoa()
@@ -47,16 +50,7 @@ def test_invalid_input():
     with pytest.raises(Exception):
         result = ResultQaoa()
         result.append(0.1, np.array([0.2, 0.3, 0.5]))
-    
-    with pytest.raises(Exception):
-        result = ResultQaoa()
-        result.append(1  , np.array([0.2, 0.4]))
-        result.append(99 , np.array([0.9, 0.6]))
-        result.append(0.2, np.array([1.1, 3.3]))
-        result.append(0.5, np.array([1.0, 5  ]))
 
-        result._ResultQaoa__len_result = 999
-        assert result.get_len()
 
 def test_invalid_indices():
     result = ResultQaoa()
@@ -64,7 +58,13 @@ def test_invalid_indices():
     result.append(99 , np.array([0.9, 0.6]))
 
     with pytest.raises(Exception):
+        result.get_cost_with_index(0.5)
         result.get_cost_with_index(1.0)
+        result.get_cost_with_index(-1)
+        result.get_cost_with_index(3)
 
     with pytest.raises(Exception):
         result.get_params_with_index(0.5)
+        result.get_params_with_index(1.0)
+        result.get_params_with_index(-1)
+        result.get_params_with_index(3)

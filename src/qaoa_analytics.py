@@ -34,6 +34,9 @@ class QaoaAnalytics():
         self.__es = None
         self.__initialize_helper_vectors_for_problem_hamiltonian()
 
+        # Initialize the constant part of cost
+        self.__cost_constant = -self.__epsilon * np.sum(loanees.get_association_matrix())/2
+
 
     def __initialize_instance_variables_with_config(self, qaoa_config: dict):
         if "epsilon_constant" in qaoa_config:
@@ -91,7 +94,7 @@ class QaoaAnalytics():
         # To-do
         result_qaoa = ResultQaoa()
 
-        scipy_result = scipy.minimize(
+        res = scipy.optimize.minimize(
             partial(self._calculate_cost, result=result_qaoa), 
             initial_qaoa_params, 
             method = self.__optimizer_method, 
@@ -100,6 +103,7 @@ class QaoaAnalytics():
                 "maxiter": self.__optimizer_maxiter
             }
         )
+        result_qaoa.add_scipy_result(res)
 
         return result_qaoa
 
@@ -114,7 +118,7 @@ class QaoaAnalytics():
 
     def __calculate_cost_of_wavefunc(self, wavefunc):   
 
-        cost = 0.0
+        cost = self.__cost_constant
         wavefunc_bra = np.copy(np.conj(wavefunc))
 
         for i in range(self.__num_loanees): 
@@ -127,7 +131,7 @@ class QaoaAnalytics():
             for j in range(i):
                 if self.__J[i,j] != 0:
                     wavefunc_ket = np.copy(wavefunc)
-                    cost += self.inner_product(
+                    cost += self.__inner_product(
                         wavefunc_bra,
                         self.__apply_h_B_coupling(wavefunc_ket, i, j)
                     )
@@ -213,9 +217,8 @@ class QaoaAnalytics():
         # Reshaping u
         # u = u[None, None, ..., :, None, ..., None]
         idx = '[' + 'None,'*i + ':' + ',None'*(self.__num_loanees-i-1) + ']'
-        exec('u = u' + idx)
-        
-        wavefunc *= u
+        exec('wavefunc *= u'+idx)
+
         return wavefunc
     
 
@@ -225,11 +228,10 @@ class QaoaAnalytics():
         
         # wavefunc = wavefunc[:, :, ..., 0, :, ..., 0, :, ..., :]
         idx = '['+':,'*j + '0,' + ':,'*(i-j-1) + '0' +',:'*(self.__num_loanees-i-1) + ']'
-        exec('wavefunc = wavefunc' + idx)
-        
-        wavefunc *= np.exp(
-            -1j * (-self.__J[i,j]) * param_gamma
+        exec(
+            'wavefunc' + idx + '*= np.exp( -1j * (-self._QaoaAnalytics__J[i,j]) * param_gamma )'
         )
+
         return wavefunc
 
         
@@ -237,14 +239,12 @@ class QaoaAnalytics():
     def __apply_h_B_onsite(self, wavefunc, i):
         assert i < self.__num_loanees
 
-        u = -self.h[i,:]
+        u = -self.__h[i,:]
 
         # Reshaping u
         # u = u[None, None, ..., :, None, ..., None]
         idx = '[' +'None,'*i + ':' + ',None'*(self.__num_loanees-i-1) + ']'
-        exec('u = u' + idx)
-        
-        wavefunc *= u
+        exec('wavefunc *= u'+idx)
         return wavefunc
 
     

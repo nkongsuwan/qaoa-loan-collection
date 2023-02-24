@@ -82,9 +82,18 @@ def test_evolve():
     initial_qaoa_params = np.array([0.73, 0.33, 0.45, 0.23])
     qaoa_54._QaoaAnalytics__evolve_wavefunc(initial_qaoa_params)
 
-'''
-def test_cost():
+def test_optimize():
     qaoa_analytics = QaoaAnalytics(l, config)
-    params = rng.random(2*config["qaoa_repetition"]) 
-    assert qaoa_analytics._calculate_cost(params) == 0.0
-'''
+    initial_params = rng.random(2*config["qaoa_repetition"]) 
+    result = qaoa_analytics.optimize_qaoa_params(initial_params)
+
+    scipy_result = result._ResultQaoa__scipy_result
+
+    # Test if qaoa_analytics.__log is consistent with SciPy result
+    list_costs  = [element[0] for element in result._ResultQaoa__log]
+    list_params = [element[1] for element in result._ResultQaoa__log]
+    min_cost = np.min(list_costs)
+    idx_min = np.argmin(list_costs)
+    assert scipy_result.fun == min_cost
+    assert np.array_equal(list_params[idx_min], scipy_result.x)
+

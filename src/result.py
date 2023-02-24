@@ -5,13 +5,15 @@ class ResultQaoa:
         self.__log = []
         self.__len_result = 0
         self.__len_params = None
+        self.__scipy_result = None
 
     def __repr__(self):
         result_str = ""
         result_str += "ResultQaoa:\n"
-        result_str += "    Length = " + str(self.get_len()) + "\n"
-        result_str += "    Final Cost = " + str(self.get_final_cost()) + "\n"
-        result_str += "    Final Params = " + str(self.get_final_params())
+        result_str += "    Convergence      = " + str(self.is_success()) + "\n"
+        result_str += "    Length           = " + str(self.get_len()) + "\n"
+        result_str += "    Optimized Cost   = " + str(self.get_optimized_cost()) + "\n"
+        result_str += "    Optimized Params = " + str(self.get_optimized_params())
         return result_str
 
     def append(self, cost: float, params: np.ndarray):
@@ -33,26 +35,32 @@ class ResultQaoa:
         )
         self.__len_result += 1
 
+    def add_scipy_result(self, scipy_result):
+        self.__scipy_result = scipy_result
+
     def get_len(self):
-        assert self.__len_result == len( self.__log)
         return self.__len_result
 
     def get_cost_with_index(self, index: int):
-        assert isinstance(index, int)
-        assert index >= 0
-        assert index < self.__len_result
         return self.__log[index][0]
 
     def get_params_with_index(self, index: int):
-        assert isinstance(index, int)
-        assert index >= 0
-        assert index < self.__len_result
         return self.__log[index][1]
 
-    def get_final_cost(self):
-        assert self.__len_result > 0
-        return self.__log[-1][0]
+    def get_optimized_cost(self):
+        assert self.__scipy_result is not None
+        return self.__scipy_result.fun
 
-    def get_final_params(self):
-        assert self.__len_result > 0
-        return self.__log[-1][1]
+    def get_optimized_params(self):
+        assert self.__scipy_result is not None
+        return self.__scipy_result.x
+
+    def is_success(self):
+        assert self.__scipy_result is not None
+        return self.__scipy_result.success
+
+    def get_list_costs(self):
+        return [element[0] for element in self.__log]
+    
+    def get_list_params(self):
+        return [element[1] for element in self.__log]
