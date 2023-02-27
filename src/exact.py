@@ -1,8 +1,8 @@
 from src.loanee_graph import LoaneeGraph
-from src.problem_interface import ProblemInterface
-from src.result import Result
+from src.qaoa_interface import QaoaInterface
+from src.result import ResultQaoa
 
-class ExactSolver(ProblemInterface):
+class ExactSolver(QaoaInterface):
 
     def __init__(self, loanees: LoaneeGraph, qaoa_config: dict):
 
