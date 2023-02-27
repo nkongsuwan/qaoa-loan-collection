@@ -2,7 +2,7 @@ import abc
 import numpy as np
 
 from src.loanee_graph import LoaneeGraph
-from src.result import ResultQaoa
+from src.result import Result
 
 # Abstract QAOA class
 class ProblemInterface(metaclass=abc.ABCMeta):
@@ -43,5 +43,5 @@ class ProblemInterface(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod   
-    def _calculate_cost(self, qaoa_params: np.ndarray, result: ResultQaoa):
+    def _calculate_cost(self, qaoa_params: np.ndarray, result: Result):
         pass

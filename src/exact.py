@@ -1,6 +1,6 @@
 from src.loanee_graph import LoaneeGraph
 from src.problem_interface import ProblemInterface
-from src.result import ResultQaoa
+from src.result import Result
 
 class ExactSolver(ProblemInterface):
 
