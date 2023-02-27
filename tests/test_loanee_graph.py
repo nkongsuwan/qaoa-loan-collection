@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from src.loanee_graph import LoaneeGraph
 
+
 e = np.array(
     [
         [0.01045035, 0.03135106, 0.02090071],
@@ -16,8 +17,10 @@ a = np.array(
     ]
 )
 
+
 def test_simple_instance():
     LoaneeGraph(e, a)
+
 
 def test_invalid_instances():
 

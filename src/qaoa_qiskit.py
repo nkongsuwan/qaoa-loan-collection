@@ -1,20 +1,38 @@
-from qaoa_interface import QaoaInterface
-import numpy as np
-import networkx as nx
-from qiskit import IBMQ, QuantumCircuit, Aer
+''' TODO Use or delete
+self.__rng     = np.random.default_rng(12345)
+if "numpy_seed" in qaoa_config:
+    assert isinstance(qaoa_config["numpy_seed"], int)
+    assert qaoa_config["numpy_seed"] >= 0
+    self.__rng = np.random.default_rng(qaoa_config["numpy_seed"])
+'''
 
-from qiskit.algorithms.optimizers.cobyla import COBYLA
-from qiskit.opflow import I, X, Y, Z
-from qiskit.algorithms import QAOA
-from itertools import product
-from functools import partial
+#import numpy as np
+#import networkx as nx
+#from itertools import product
+#from functools import partial
 
-from qiskit.opflow.evolutions import PauliTrotterEvolution, Suzuki
-from qiskit.circuit import Parameter
+#from qiskit import QuantumCircuit, Aer
+#from qiskit.algorithms.optimizers.cobyla import COBYLA
+#from qiskit.opflow import I, X, Y, Z
+#from qiskit.algorithms import QAOA
+#from qiskit.opflow.evolutions import PauliTrotterEvolution, Suzuki
+#from qiskit.circuit import Parameter
+
+#from src.loanee_graph import LoaneeGraph
+#from src.problem_interface import ProblemInterface
+#from src.result import ResultQaoa
 
 
-class QiskitQAOA(QaoaInterface):
-    
+#class QaoaQiskit(ProblemInterface):
+#   def __init__(self) -> None:
+#      super().__init__()
+
+class QaoaQiskit():
+   
+    def __init__(self):
+       pass
+
+'''    
     def __init__(self,
             Qs: np.ndarray,
             As: np.ndarray,
@@ -45,8 +63,9 @@ class QiskitQAOA(QaoaInterface):
 
         # Qiskit simulator
         self.simulator = simulator
+'''
 
-
+'''
     def optimized(self):
         # Construct Hamiltonian
         self.construct_H()
@@ -55,6 +74,7 @@ class QiskitQAOA(QaoaInterface):
         # Eliminate invalid state
         self.valid_state()
 
+        
     def construct_H(self):
 
         ops = partial(operator, len_M=self.len_M, len_N=self.len_N)
@@ -87,6 +107,7 @@ class QiskitQAOA(QaoaInterface):
                     self.H_B += (ops(X, i, j ) @ ops(X, i, jp1 ) ) + ( ops(Y, i, jp1 ) @ ops(Y, i, j ) )
         self.H_B = (-1/2)*self.H_B
 
+        
     def run_qaoa(self):
 
         # Define initial state 
@@ -121,6 +142,7 @@ class QiskitQAOA(QaoaInterface):
 
         self.candidate = merged_result
 
+        
     def valid_state(self):
 
         # Get valid index
@@ -132,11 +154,13 @@ class QiskitQAOA(QaoaInterface):
                 #self.ps.append(candidate_value/norm)
                 self.ps.append(np.conjugate(candidate_value)*candidate_value)
 
+                
     def get_instruction(self, operator, parameter_name, order=1, reps=1):
         param = Parameter(parameter_name)
         ops_ = (param*operator).exp_i()
         return PauliTrotterEvolution(trotter_mode=Suzuki(order=order, reps=reps)).convert(ops_).to_instruction()
 
+        
     def get_custom_circuit(self, p:int, order=1, reps=1):
         """Get custom circuit for QAOA.
 
@@ -162,6 +186,8 @@ class QiskitQAOA(QaoaInterface):
             qc.append(self.get_instruction(self.H_B, f'beta_{j}', order=order, reps=reps), range(self.num_term))
 
         return qc
+   
+    
     # Convert arg into element in Psi.    
     def _to_str(self, n):
         convertString = "0123456789ABCDEF"
@@ -170,10 +196,12 @@ class QiskitQAOA(QaoaInterface):
         else:
             return self._to_str(n//self.len_M) + convertString[n%self.len_M]
 
+            
     def get_str_from_index(self, n):
         Str = self._to_str(n)
         return "0"*(self.len_N - len(Str)) + Str
 
+        
     # Get cost from bitstring.
     def get_cost_from_str(self, state):       
         c = 0       
@@ -198,6 +226,7 @@ def operator(operator, i, j, len_N, len_M):
             op ^= I
     return op
 
+    
 def if_valid_state(bitstring, length_action):
     assert(len(bitstring)%length_action == 0)
     for i in range(0, len(bitstring), length_action):
@@ -210,6 +239,7 @@ def if_valid_state(bitstring, length_action):
             break
     return valid
 
+    
 class QiskitVQE(QaoaInterface):
     def __init__(self,
             Qs: np.ndarray,
@@ -242,6 +272,7 @@ class QiskitVQE(QaoaInterface):
         # Qiskit simulator
         self.simulator = simulator
 
+        
     def _construct_H(self):
 
         ops = partial(operator, len_M=self.len_M, len_N=self.len_N)
@@ -306,6 +337,7 @@ class QiskitVQE(QaoaInterface):
 
         self.candidate = merged_result
 
+        
     def _valid_state(self):
 
         # Get valid index
@@ -317,11 +349,13 @@ class QiskitVQE(QaoaInterface):
                 #self.ps.append(candidate_value/norm)
                 self.ps.append(np.conjugate(candidate_value)*candidate_value)
 
+                
     def _get_instruction(self, operator, parameter_name, order=1, reps=1):
         param = Parameter(parameter_name)
         ops_ = (param*operator).exp_i()
         return PauliTrotterEvolution(trotter_mode=Suzuki(order=order, reps=reps)).convert(ops_).to_instruction()
 
+        
     def runtime_qaoa(self, provider, backend_name:str, p:int=2, shots:int=4096):
         """Execute QAOA using VQE runtime.
 
@@ -424,6 +458,7 @@ class QiskitVQE(QaoaInterface):
 
         return qc
 
+        
     # Convert arg into element in Psi.    
     def _to_str(self, n):
         convertString = "0123456789ABCDEF"
@@ -432,10 +467,12 @@ class QiskitVQE(QaoaInterface):
         else:
             return self._to_str(n//self.len_M) + convertString[n%self.len_M]
 
+            
     def get_str_from_index(self, n):
         Str = self._to_str(n)
         return "0"*(self.len_N - len(Str)) + Str
 
+        
     # Get cost from bitstring.
     def get_cost_from_str(self, state):       
         c = 0       
@@ -445,3 +482,4 @@ class QiskitVQE(QaoaInterface):
                 if (int(state[i]) == 0 and int(state[ii]) == 0):
                     c -= self.J[i,ii]
         return c
+'''

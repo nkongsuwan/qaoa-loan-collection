@@ -1,6 +1,7 @@
 import numpy as np
 from src.helpers import generate_random_dataset
 
+
 def test_generate_random_dataset():
 
     exp, ass = generate_random_dataset(5, 4)
