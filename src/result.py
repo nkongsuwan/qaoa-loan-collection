@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Result:
+class ResultQaoa:
 
     def __init__(self):
         self.__list_costs = []
@@ -12,7 +12,7 @@ class Result:
 
     def __repr__(self):
         result_str = ""
-        result_str += "Result:\n"
+        result_str += "ResultQaoa:\n"
         result_str += "    Convergence      = " + str(self.is_success()) + "\n"
         result_str += "    Length           = " + str(self.get_len()) + "\n"
         result_str += "    Optimized Cost   = " + str(self.get_optimized_cost()) + "\n"

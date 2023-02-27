@@ -19,11 +19,11 @@ if "numpy_seed" in qaoa_config:
 #from qiskit.circuit import Parameter
 
 #from src.loanee_graph import LoaneeGraph
-#from src.problem_interface import ProblemInterface
-#from src.result import Result
+#from src.qaoa_interface import QaoaInterface
+#from src.result import ResultQaoa
 
 
-#class QaoaQiskit(ProblemInterface):
+#class QaoaQiskit(QaoaInterface):
 #   def __init__(self) -> None:
 #      super().__init__()
 

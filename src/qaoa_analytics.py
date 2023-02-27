@@ -3,11 +3,11 @@ import scipy
 from functools import partial
 
 from src.loanee_graph import LoaneeGraph
-from src.problem_interface import ProblemInterface
-from src.result import Result
+from src.qaoa_interface import QaoaInterface
+from src.result import ResultQaoa
 
 
-class QaoaAnalytics(ProblemInterface):
+class QaoaAnalytics(QaoaInterface):
 
     def __init__(self, loanees: LoaneeGraph, qaoa_config: dict):
 
@@ -57,7 +57,7 @@ class QaoaAnalytics(ProblemInterface):
         if initial_qaoa_params is None:
             initial_qaoa_params = self.rng.random(2*self.p)    
         
-        result_qaoa = Result()
+        result_qaoa = ResultQaoa()
 
         self.scipy_result = scipy.optimize.minimize(
             partial(self._calculate_cost, result=result_qaoa), 
@@ -73,7 +73,7 @@ class QaoaAnalytics(ProblemInterface):
         return result_qaoa
 
 
-    def _calculate_cost(self, qaoa_params: np.ndarray, result: Result):
+    def _calculate_cost(self, qaoa_params: np.ndarray, result: ResultQaoa):
         assert len(qaoa_params) == 2*self._p
         wavefunc = self.__evolve_wavefunc(qaoa_params)
         cost = self.__calculate_cost_of_wavefunc(wavefunc)        
