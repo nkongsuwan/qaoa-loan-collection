@@ -11,15 +11,17 @@ class QaoaInterface(metaclass=abc.ABCMeta):
         assert isinstance(loanees, LoaneeGraph)
         self._num_loanees = loanees.get_num_loanees()
         self._num_actions = loanees.get_num_actions()
+        self._num_qubits = self._num_loanees * self._num_actions
+        self._num_valid_states = self._num_actions**self._num_loanees
 
         # set default values for instance variables
-        self._epsilon = 0.1
+        self._epsilon = 0.2
         self._p       = 1
         self._optimizer_method  = "COBYLA"
         self._optimizer_maxiter = 50
-        self.__initialize_instance_variables_with_config(qaoa_config)
+        self.__initialize_instance_variables_with_qaoa_config(qaoa_config)
 
-    def __initialize_instance_variables_with_config(self, qaoa_config: dict):
+    def __initialize_instance_variables_with_qaoa_config(self, qaoa_config: dict):
         if "epsilon_constant" in qaoa_config:
             assert isinstance(qaoa_config["epsilon_constant"], float)
             assert qaoa_config["epsilon_constant"] >= 0
@@ -42,6 +44,6 @@ class QaoaInterface(metaclass=abc.ABCMeta):
     def optimize_qaoa_params(self):
         pass
 
-    @abc.abstractmethod   
-    def _calculate_cost(self, qaoa_params: np.ndarray, result: ResultQaoa):
-        pass
+    #@abc.abstractmethod   
+    #def _calculate_cost(self, qaoa_params: np.ndarray, result: ResultQaoa):
+    #    pass

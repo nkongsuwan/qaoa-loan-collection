@@ -52,7 +52,10 @@ class QaoaAnalytics(QaoaInterface):
         )
 
 
-    def optimize_qaoa_params(self, initial_qaoa_params: np.ndarray = None):
+    def optimize_qaoa_params(
+        self, 
+        initial_qaoa_params: np.ndarray = None
+    ) -> ResultQaoa:
     
         if initial_qaoa_params is None:
             initial_qaoa_params = self.rng.random(2*self.p)    
@@ -73,15 +76,21 @@ class QaoaAnalytics(QaoaInterface):
         return result_qaoa
 
 
-    def _calculate_cost(self, qaoa_params: np.ndarray, result: ResultQaoa):
+    def _calculate_cost(
+        self, 
+        qaoa_params: np.ndarray, 
+        result: ResultQaoa
+    ) -> float:
+        
         assert len(qaoa_params) == 2*self._p
         wavefunc = self.__evolve_wavefunc(qaoa_params)
         cost = self.__calculate_cost_of_wavefunc(wavefunc)        
         result.append(cost, qaoa_params)
+
         return cost
 
 
-    def __calculate_cost_of_wavefunc(self, wavefunc):   
+    def __calculate_cost_of_wavefunc(self, wavefunc: np.ndarray) -> float:   
 
         cost = self.__cost_constant
         wavefunc_bra = np.copy(np.conj(wavefunc))
@@ -105,7 +114,12 @@ class QaoaAnalytics(QaoaInterface):
         return cost
 
 
-    def __inner_product(self, wavefunc_1, wavefunc_2):
+    def __inner_product(
+        self, 
+        wavefunc_1: np.ndarray,
+        wavefunc_2: np.ndarray
+    ) -> np.ndarray:
+        
         result = np.tensordot(
             wavefunc_1,
             wavefunc_2,
@@ -121,7 +135,7 @@ class QaoaAnalytics(QaoaInterface):
     # Here, a reduced Hibert space is used to describe the wavefunc,
     # i.e. dimension of the wavefunc is num_actions**num_loanees
     # instead of 2**(num_actions*num_loanees).
-    def __evolve_wavefunc(self, qaoa_params: np.ndarray):
+    def __evolve_wavefunc(self, qaoa_params: np.ndarray) -> np.ndarray:
         assert qaoa_params.shape == (2*self._p,)
 
         wavefunc = self._prepare_equal_superposition_of_valid_states()
@@ -137,15 +151,19 @@ class QaoaAnalytics(QaoaInterface):
     # e.g. for 3 loanees and 2 actions
     # wavefunc.shape == (2, 2, 2)
     # wavefunc = ( |10,10,10> + |10,10,01> + |10,01,10> + |10,01,01> + |01,10,10> + |01,10,01> + |01,01,10> + |01,01,01> ) / norm
-    def _prepare_equal_superposition_of_valid_states(self):
-        num_valid_states = self._num_actions**self._num_loanees
-        wavefunc = np.ones(num_valid_states, dtype='complex') / np.sqrt(num_valid_states)
+    def _prepare_equal_superposition_of_valid_states(self) -> np.ndarray:
+        wavefunc = np.ones(self._num_valid_states, dtype='complex') / np.sqrt(self._num_valid_states)
         wavefunc = np.reshape(wavefunc,[self._num_actions]*self._num_loanees)
         return wavefunc
 
 
     # U_problem  = exp(- i H_problem gamma)
-    def __apply_U_problem(self, wavefunc, param_beta):
+    def __apply_U_problem(
+        self,
+        wavefunc: np.ndarray,
+        param_beta: np.ndarray
+    ) -> np.ndarray:
+        
         assert isinstance(param_beta, float)
         assert np.shape(wavefunc) == tuple([self._num_actions]*self._num_loanees)
 
@@ -159,7 +177,12 @@ class QaoaAnalytics(QaoaInterface):
 
 
     # U_mixing  = exp(- i H_mixing beta)
-    def __apply_U_mixing(self, wavefunc, param_gamma):
+    def __apply_U_mixing(
+        self,
+        wavefunc: np.ndarray,
+        param_gamma: np.ndarray
+    ) -> np.ndarray:
+
         assert isinstance(param_gamma, float)
         assert np.shape(wavefunc) == tuple([self._num_actions]*self._num_loanees)
 
@@ -173,7 +196,13 @@ class QaoaAnalytics(QaoaInterface):
 
 
     # Apply an onsite term in U_B 
-    def __apply_U_B_onsite(self, wavefunc, param_gamma, i):
+    def __apply_U_B_onsite(
+        self,
+        wavefunc: np.ndarray,
+        param_gamma: np.ndarray,
+        i: int
+    ) -> np.ndarray:
+
         assert i < self._num_loanees
 
         u = np.exp(
@@ -189,7 +218,14 @@ class QaoaAnalytics(QaoaInterface):
     
 
     # Apply a coupling term in U_B 
-    def __apply_U_B_coupling(self, wavefunc, param_gamma, i, j):
+    def __apply_U_B_coupling(
+        self,
+        wavefunc: np.ndarray,
+        param_gamma: np.ndarray,
+        i: int,
+        j: int
+    ) -> np.ndarray:
+        
         assert i>j
         
         # wavefunc = wavefunc[:, :, ..., 0, :, ..., 0, :, ..., :]
@@ -202,7 +238,12 @@ class QaoaAnalytics(QaoaInterface):
 
         
     # Apply an onsite term in H_B 
-    def __apply_h_B_onsite(self, wavefunc, i):
+    def __apply_h_B_onsite(
+        self,
+        wavefunc: np.ndarray,
+        i: int
+    ) -> np.ndarray:
+        
         assert i < self._num_loanees
 
         u = -self.__h[i,:]
@@ -215,7 +256,13 @@ class QaoaAnalytics(QaoaInterface):
 
     
     # Apply the coupling term in H_B
-    def __apply_h_B_coupling(self, wavefunc, i, j):
+    def __apply_h_B_coupling(
+        self,
+        wavefunc: np.ndarray,
+        i: int,
+        j: int
+    ) -> np.ndarray:
+        
         assert i>j
 
         # -J * n_i * n_j
