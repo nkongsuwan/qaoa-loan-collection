@@ -11,7 +11,7 @@ import networkx as nx
 #from itertools import product
 from functools import partial
 
-from qiskit import Aer #QuantumCircuit
+#from qiskit import QuantumCircuit
 #from qiskit.algorithms.optimizers.cobyla import COBYLA
 from qiskit.opflow import PauliOp, I, X, Y, Z
 #from qiskit.algorithms import QAOA
@@ -20,6 +20,7 @@ from qiskit.opflow import PauliOp, I, X, Y, Z
 
 from src.loanee_graph import LoaneeGraph
 from src.qaoa_interface import QaoaInterface
+from src.qiskit_simulators import QiskitSimulator
 #from src.result import ResultQaoa
 
 
@@ -29,13 +30,13 @@ class QaoaQiskit(QaoaInterface):
 
         super().__init__(loanees, qaoa_config)
 
-        self.__H_mixingenz = loanees.get_expected_net_profit_matrix()
-        self.__G = nx.from_numpy_matrix(
+        self.__expected_net_profit = loanees.get_expected_net_profit_matrix()
+        self.__association_graph = nx.from_numpy_array(
             loanees.get_association_matrix()
         )
 
-        self.__H_problem = 0
-        self.__H_mixing = 0
+        self.__H_problem = None
+        self.__H_mixing = None
         self.__initialize_hamiltonian()
 
         # Result
@@ -45,10 +46,13 @@ class QaoaQiskit(QaoaInterface):
         self.ps = []
         
         # Qiskit simulator
-        self.__simulator = Aer.get_backend(qiskit_config["simulator"])
+        self.__simulator = QiskitSimulator.DENSITY_MATRIX
 
 
     def __initialize_hamiltonian(self):
+        self.__H_problem = 0
+        self.__H_mixing = 0
+        
         X_op = partial(self.__generate_multi_pauliop, pauliOp=X)
         Y_op = partial(self.__generate_multi_pauliop, pauliOp=Y)
         Z_op = partial(self.__generate_multi_pauliop, pauliOp=Z)
@@ -59,33 +63,33 @@ class QaoaQiskit(QaoaInterface):
             I_op ^= I
         
         # Problem Hamiltonian (1st term)
-        for i in np.arange(1, self._num_loanees + 1):
-            for j in np.arange(1, self._num_actions + 1):
+        for i in np.arange(self._num_loanees):
+            for j in np.arange(self._num_actions):
                 self.__H_problem += (
                     - 0.5*(1 - self._epsilon) *
-                    float( self.__H_mixingenz[i-1, j-1] ) *
+                    float( self.__expected_net_profit[i, j] ) *
                     ( I_op  - Z_op(i, j) )
                 )
 
         # Problem Hamiltonian (2nd term)
-        for _ , (node_1, node_2, data) in enumerate(self.__G.edges(data=True)):
-            if node_1 != node_2:
-                A = data['weight']
-                self.__H_problem += - 0.25*self._epsilon*A*( 
-                    ( I_op + Z_op(node_1+1, 1) ) @ 
-                    ( I_op + Z_op(node_2+1, 1) ) 
+        for _ , (loanee_1, loanee_2, data) in enumerate(self.__association_graph.edges(data=True)):
+            if loanee_1 != loanee_2:
+                w = data['weight']
+                self.__H_problem += - 0.25 * self._epsilon * w * ( 
+                    ( I_op + Z_op(loanee_1, 0) ) @ 
+                    ( I_op + Z_op(loanee_2, 0) ) 
                 )
 
         # Mixing Hamiltonian
-        for i in np.arange(1, self._num_loanees + 1):
+        for i in np.arange(self._num_loanees):
             if self._num_actions == 2:
-                self.__H_mixing += X_op(i, 1) @ X_op(i, 2)
-                self.__H_mixing += Y_op(i, 2) @ Y_op(i, 1)
+                self.__H_mixing += X_op(i, 0) @ X_op(i, 1)
+                self.__H_mixing += Y_op(i, 1) @ Y_op(i, 0)
             else:
-                for j in np.arange(1, self._num_actions + 1):
+                for j in np.arange(self._num_actions):
                     jp1 = j + 1
-                    if jp1 == self._num_actions + 1:
-                        jp1 = 1
+                    if jp1 == self._num_actions:
+                        jp1 = 0
                     self.__H_mixing += X_op(i, j  ) @ X_op(i, jp1) 
                     self.__H_mixing += Y_op(i, jp1) @ Y_op(i, j  )
         self.__H_mixing *= -1/2
@@ -93,16 +97,16 @@ class QaoaQiskit(QaoaInterface):
 
     def __generate_multi_pauliop(
         self, 
-        pauliOp: PauliOp,
-        i: int,
-        j: int
+        i: int, # loanee index
+        j: int, # action index
+        pauliOp: PauliOp
     ) -> PauliOp:
 
-            index = (i - 1)*self._num_actions + j
-            op = pauliOp if index == 1 else I
+            index = self._num_actions*i + j
+            op = pauliOp if index == 0 else I
             
             for k in range(1, self._num_qubits):
-                if (index - 1) == k:
+                if index == k:
                     op ^= pauliOp
                 else:
                     op ^= I
@@ -115,12 +119,8 @@ class QaoaQiskit(QaoaInterface):
 
     '''
     def optimized(self):
-        # Construct Hamiltonian
-        self.__initialize_hamiltonian()
-        # result including invalid state
         self.run_qaoa()
-        # Eliminate invalid state
-        self.valid_state()
+        self.eliminate_invalid_state()
 
         
     def run_qaoa(self):
@@ -157,7 +157,7 @@ class QaoaQiskit(QaoaInterface):
         self.candidate = merged_result
 
         
-    def valid_state(self):
+    def eliminate_invalid_state(self):
 
         # Get valid index
         # Normalized Probability 
