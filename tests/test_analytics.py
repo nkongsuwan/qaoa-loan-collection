@@ -36,6 +36,7 @@ qaoa_54 = QaoaAnalytics(l_54, config)
 
 def test_qaoa_analytics():
     qaoa_analytics = QaoaAnalytics(l, config)
+    qaoa_analytics.optimize_qaoa_params()
 
 
 def test_invalid_input():
@@ -52,6 +53,10 @@ def test_invalid_input():
         invalid_config["qaoa_repetition"] = 0
         qaoa_analytics = QaoaAnalytics(l, invalid_config)
 
+    with pytest.raises(Exception):
+        invalid_config = config.copy()
+        invalid_config["numpy_seed"] = -1
+        qaoa_analytics = QaoaAnalytics(l, invalid_config)
 
 
 def test_prepare_equal_superposition_of_valid_states():

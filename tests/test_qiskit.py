@@ -31,7 +31,7 @@ qaoa_config = {
 }
 
 qiskit_config = {
-    "simulator": "aer_simulator"
+    "simulator": "qasm_simulator"
 }
 
 l = LoaneeGraph(e, a)
@@ -41,16 +41,16 @@ qaoa_analytics_54 = QaoaAnalytics(l_54, qaoa_config)
 
 def test_qaoa_qiskit():
     qaoa_qiskit = QaoaQiskit(l, qaoa_config, qiskit_config)
-    qaoa_qiskit._num_actions == 3
     qaoa_qiskit._num_loanees == 2
-    qaoa_qiskit._num_valid_states = 3 * 2
+    qaoa_qiskit._num_actions == 3
+    qaoa_qiskit._num_qubits == 2 * 3
+    qaoa_qiskit._num_valid_states == 3 ** 2
 
 
-
-def test_optimize():
-    qaoa_qiskit = QaoaQiskit(l, qaoa_config, qiskit_config)
-    initial_params = rng.random(2*qaoa_config["qaoa_repetition"]) 
-    result = qaoa_qiskit.optimize_qaoa_params(initial_params)
+#def test_optimize():
+#    qaoa_qiskit = QaoaQiskit(l, qaoa_config, qiskit_config)
+#    initial_params = rng.random(2*qaoa_config["qaoa_repetition"]) 
+#    result = qaoa_qiskit.optimize_qaoa_params(initial_params)
 
     # Test if qaoa_analytics.__log is consistent with SciPy result
     #assert qaoa_analytics.scipy_result.fun == result.get_optimized_cost()

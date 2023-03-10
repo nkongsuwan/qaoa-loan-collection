@@ -1,27 +1,19 @@
-''' TODO Use or delete
-self.__rng     = np.random.default_rng(12345)
-if "numpy_seed" in qaoa_config:
-    assert isinstance(qaoa_config["numpy_seed"], int)
-    assert qaoa_config["numpy_seed"] >= 0
-    self.__rng = np.random.default_rng(qaoa_config["numpy_seed"])
-'''
-
 import numpy as np
 import networkx as nx
 #from itertools import product
 from functools import partial
 
-#from qiskit import QuantumCircuit
-#from qiskit.algorithms.optimizers.cobyla import COBYLA
+from qiskit import QuantumCircuit
 from qiskit.opflow import PauliOp, I, X, Y, Z
-#from qiskit.algorithms import QAOA
+from qiskit.algorithms import QAOA
+from qiskit.algorithms.optimizers.cobyla import COBYLA
 #from qiskit.opflow.evolutions import PauliTrotterEvolution, Suzuki
 #from qiskit.circuit import Parameter
 
 from src.loanee_graph import LoaneeGraph
 from src.qaoa_interface import QaoaInterface
 from src.qiskit_simulators import QiskitSimulator
-#from src.result import ResultQaoa
+from src.result import ResultQaoa
 
 
 class QaoaQiskit(QaoaInterface):
@@ -46,8 +38,14 @@ class QaoaQiskit(QaoaInterface):
         self.ps = []
         
         # Qiskit simulator
-        self.__simulator = QiskitSimulator.DENSITY_MATRIX
-
+        match qiskit_config["simulator"]:
+            case "qasm_simulator":
+                self.__simulator = QiskitSimulator.QASM
+            case "statevector_simulator":
+                self.__simulator = QiskitSimulator.STATEVECTOR
+            case _:
+                assert False
+        
 
     def __initialize_hamiltonian(self):
         self.__H_problem = 0
@@ -113,30 +111,29 @@ class QaoaQiskit(QaoaInterface):
 
             return op
 
+    
+    def _run_qaoa(
+        self, 
+        initial_qaoa_params: np.ndarray
+    ) -> ResultQaoa:
 
-    def optimize_qaoa_params(self, initial_qaoa_params: np.ndarray = None):
-        pass
-
-    '''
-    def optimized(self):
-        self.run_qaoa()
-        self.eliminate_invalid_state()
-
+        result_qaoa = ResultQaoa()
         
-    def run_qaoa(self):
-
-        # Define initial state 
-        initial_state = QuantumCircuit(self._num_qubits)
-        initial_state.x(0)
-
-        prev_q = 0
-        for i in range(self._num_loanees-1):
-            prev_q += self._num_actions
-            initial_state.x(prev_q)
-
-        # QAOA simulator
-        qaoa_obj = QAOA(optimizer=COBYLA(maxiter=1000, disp=False), mixer=self.__H_mixing, quantum_instance=self.__simulator, initial_state=initial_state, reps=2)
-        result = qaoa_obj.compute_minimum_eigenvalue(self.__H_problem)
+        initial_state = self._prepare_equal_superposition_of_valid_states()
+        
+        qaoa_qiskit = QAOA(
+            optimizer = COBYLA(maxiter=self._optimizer_maxiter, disp=False),
+            reps = self._p,
+            initial_state = initial_state,
+            mixer = self.__H_mixing, 
+            initial_point = initial_qaoa_params,
+            quantum_instance = self.__simulator
+        )
+        '''
+        result = qaoa_qiskit.compute_minimum_eigenvalue(self.__H_problem)
+        
+        
+        
         self.result = result
 
         # Create template result
@@ -155,8 +152,15 @@ class QaoaQiskit(QaoaInterface):
         merged_result = {**template_result, **result.eigenstate}
 
         self.candidate = merged_result
+        '''
 
-        
+    def _prepare_equal_superposition_of_valid_states(self) -> QuantumCircuit:
+        initial_state = QuantumCircuit(self._num_qubits)
+        for i in range(self._num_loanees):
+            initial_state.x(i * self._num_actions)
+        return initial_state
+
+    '''   
     def eliminate_invalid_state(self):
 
         # Get valid index

@@ -17,8 +17,9 @@ class QaoaInterface(metaclass=abc.ABCMeta):
         # set default values for instance variables
         self._epsilon = 0.2
         self._p       = 1
+        self._rng    = np.random.default_rng(12345)
         self._optimizer_method  = "COBYLA"
-        self._optimizer_maxiter = 50
+        self._optimizer_maxiter = 1000     
         self.__initialize_instance_variables_with_qaoa_config(qaoa_config)
 
     def __initialize_instance_variables_with_qaoa_config(self, qaoa_config: dict):
@@ -40,8 +41,30 @@ class QaoaInterface(metaclass=abc.ABCMeta):
             assert isinstance(qaoa_config["optimizer_maxiter"], int)
             self._optimizer_maxiter = qaoa_config["optimizer_maxiter"]       
 
+        if "numpy_seed" in qaoa_config:
+            assert isinstance(qaoa_config["numpy_seed"], int)
+            assert qaoa_config["numpy_seed"] >= 0
+            self._rng = np.random.default_rng(qaoa_config["numpy_seed"])
+
+
+    def optimize_qaoa_params(
+        self, 
+        initial_qaoa_params: np.ndarray = None
+    ) -> ResultQaoa:
+    
+        if initial_qaoa_params is None:
+            initial_qaoa_params = self._rng.random(2*self._p)    
+        
+        return self._run_qaoa(initial_qaoa_params)
+
+
     @abc.abstractmethod
-    def optimize_qaoa_params(self):
+    def _run_qaoa(self, initial_qaoa_params: np.ndarray) -> ResultQaoa:
+        pass
+
+
+    @abc.abstractmethod
+    def _prepare_equal_superposition_of_valid_states(self):
         pass
 
     #@abc.abstractmethod   

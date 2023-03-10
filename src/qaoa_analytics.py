@@ -52,13 +52,10 @@ class QaoaAnalytics(QaoaInterface):
         )
 
 
-    def optimize_qaoa_params(
+    def _run_qaoa(
         self, 
-        initial_qaoa_params: np.ndarray = None
-    ) -> ResultQaoa:
-    
-        if initial_qaoa_params is None:
-            initial_qaoa_params = self.rng.random(2*self.p)    
+        initial_qaoa_params: np.ndarray
+    ) -> ResultQaoa: 
         
         result_qaoa = ResultQaoa()
 
