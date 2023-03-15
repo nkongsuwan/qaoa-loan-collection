@@ -3,6 +3,7 @@ import numpy as np
 
 from src.loanee_graph import LoaneeGraph
 from src.result import ResultQaoa
+from src.enums import InitialState
 
 # Abstract QAOA class
 class QaoaInterface(metaclass=abc.ABCMeta):
@@ -20,6 +21,7 @@ class QaoaInterface(metaclass=abc.ABCMeta):
         self._rng    = np.random.default_rng(12345)
         self._optimizer_method  = "COBYLA"
         self._optimizer_maxiter = 1000     
+        self._initial_state = InitialState.EQUAL_SUPERPOSITION
         self.__initialize_instance_variables_with_qaoa_config(qaoa_config)
 
     def __initialize_instance_variables_with_qaoa_config(self, qaoa_config: dict):
@@ -39,12 +41,20 @@ class QaoaInterface(metaclass=abc.ABCMeta):
 
         if "optimizer_maxiter" in qaoa_config:
             assert isinstance(qaoa_config["optimizer_maxiter"], int)
+            assert qaoa_config["optimizer_maxiter"] > 0
             self._optimizer_maxiter = qaoa_config["optimizer_maxiter"]       
 
         if "numpy_seed" in qaoa_config:
             assert isinstance(qaoa_config["numpy_seed"], int)
             assert qaoa_config["numpy_seed"] >= 0
             self._rng = np.random.default_rng(qaoa_config["numpy_seed"])
+
+        if "initial_state" in qaoa_config:
+            assert isinstance(qaoa_config["initial_state"], str)
+            assert qaoa_config["initial_state"] in InitialState._value2member_map_
+            for state in InitialState._value2member_map_:
+                if qaoa_config["initial_state"] == state:
+                    self._initial_state = InitialState._value2member_map_[state]
 
 
     def optimize_qaoa_params(
@@ -64,7 +74,7 @@ class QaoaInterface(metaclass=abc.ABCMeta):
 
 
     @abc.abstractmethod
-    def _prepare_equal_superposition_of_valid_states(self):
+    def _prepare_initial_state(self):
         pass
 
     #@abc.abstractmethod   

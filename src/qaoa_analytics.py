@@ -135,7 +135,7 @@ class QaoaAnalytics(QaoaInterface):
     def __evolve_wavefunc(self, qaoa_params: np.ndarray) -> np.ndarray:
         assert qaoa_params.shape == (2*self._p,)
 
-        wavefunc = self._prepare_equal_superposition_of_valid_states()
+        wavefunc = self._prepare_initial_state()
         for i in range(self._p):
             wavefunc = self.__apply_U_problem(wavefunc, qaoa_params[2*i])
             wavefunc = self.__apply_U_mixing (wavefunc, qaoa_params[2*i + 1])
@@ -148,7 +148,7 @@ class QaoaAnalytics(QaoaInterface):
     # e.g. for 3 loanees and 2 actions
     # wavefunc.shape == (2, 2, 2)
     # wavefunc = ( |10,10,10> + |10,10,01> + |10,01,10> + |10,01,01> + |01,10,10> + |01,10,01> + |01,01,10> + |01,01,01> ) / norm
-    def _prepare_equal_superposition_of_valid_states(self) -> np.ndarray:
+    def _prepare_initial_state(self) -> np.ndarray:
         wavefunc = np.ones(self._num_valid_states, dtype='complex') / np.sqrt(self._num_valid_states)
         wavefunc = np.reshape(wavefunc,[self._num_actions]*self._num_loanees)
         return wavefunc

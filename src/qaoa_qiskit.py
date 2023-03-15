@@ -12,7 +12,7 @@ from qiskit.algorithms.optimizers.cobyla import COBYLA
 
 from src.loanee_graph import LoaneeGraph
 from src.qaoa_interface import QaoaInterface
-from src.qiskit_simulators import QiskitSimulator
+from src.enums import QiskitSimulator
 from src.result import ResultQaoa
 
 
@@ -119,7 +119,7 @@ class QaoaQiskit(QaoaInterface):
 
         result_qaoa = ResultQaoa()
         
-        initial_state = self._prepare_equal_superposition_of_valid_states()
+        initial_state = self._prepare_initial_state()
         
         qaoa_qiskit = QAOA(
             optimizer = COBYLA(maxiter=self._optimizer_maxiter, disp=False),
@@ -127,13 +127,13 @@ class QaoaQiskit(QaoaInterface):
             initial_state = initial_state,
             mixer = self.__H_mixing, 
             initial_point = initial_qaoa_params,
-            quantum_instance = self.__simulator
+            quantum_instance = self.__simulator.value
         )
-        '''
+        
         result = qaoa_qiskit.compute_minimum_eigenvalue(self.__H_problem)
+        return result
         
-        
-        
+        '''
         self.result = result
 
         # Create template result
@@ -154,11 +154,13 @@ class QaoaQiskit(QaoaInterface):
         self.candidate = merged_result
         '''
 
-    def _prepare_equal_superposition_of_valid_states(self) -> QuantumCircuit:
+
+    def _prepare_initial_state(self) -> QuantumCircuit:
         initial_state = QuantumCircuit(self._num_qubits)
-        for i in range(self._num_loanees):
-            initial_state.x(i * self._num_actions)
+        for i in range(self._num_qubits):
+            initial_state.h(i)
         return initial_state
+    
 
     '''   
     def eliminate_invalid_state(self):
